@@ -1,9 +1,6 @@
 ## Frida Injector for Android
 
-is an Android library usable for production applications that inject your agent into apps and processes.
-It obviously requires root on the devices running our final product.
-I have some apps in the Google Play Store shipped with this, injecting js using frida in the Android audio-server and systemui,
-obviously in-line with the Google policy, aka, don't touch copyrighted/3rd party code.
+is a library allowing you to inject frida agents from an Android application.
 
 The things are very very easy:
 
@@ -35,7 +32,9 @@ dependencies {
                 .build();
 
         // build an instance of FridaAgent
-        FridaAgent fridaAgent = FridaAgent.fromAsset(this, "agent.js");
+        FridaAgent fridaAgent = new FridaAgent.Builder(this)
+                .withAgentFromAssets("agent.js")
+                .build();
 
         // inject systemUi
         fridaInjector.inject(fridaAgent, "com.android.systemui", true);
@@ -44,5 +43,33 @@ dependencies {
     }
 ````
 
+#### Implementing "on('message')"
 
-The example apk [here](https://github.com/igio90/FridaAndroidInjector/tree/master/example.apk) is this little example built and ready. You will see it works! (only arm64).
+```java
+    public class MainActivity extends AppCompatActivity implements OnMessage {
+        @Override
+        public void onMessage(String data) {
+            try {
+                JSONObject object = new JSONObject(data);
+                Log.e("FridaInjector", "SystemUI pid: " + object.getString("pid"));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+```
+
+```java
+    FridaAgent fridaAgent = new FridaAgent.Builder(this)
+            .withAgentFromAssets("agent.js")
+            .withOnMessage(this)
+            .build();
+```
+
+and from your agent
+
+```javascript
+    Java.send({'pid': Process.id});
+```
+
+The example apk [here](https://github.com/igio90/FridaAndroidInjector/tree/master/example.apk) is built and ready to try. You will see it works! (only arm64).
